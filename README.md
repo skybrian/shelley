@@ -73,6 +73,27 @@ Shelley is a computer program, and, it's an it.
 
 Shelley is Apache licensed. We require a CLA for contributions.
 
+# Customization
+
+## Startup Hook
+
+Shelley can run a script at the start of each new conversation. Create an executable file at `~/.config/shelley/on-conversation-start`:
+
+```bash
+#!/bin/bash
+echo "=== Git Status ==="
+git status -sb 2>/dev/null || echo "Not a git repo"
+echo ""
+echo "=== Recent commits ==="
+git log --oneline -5 2>/dev/null || true
+```
+
+The script runs with the conversation's working directory as its current directory. Output is shown to the user and included in the context sent to the model. The script has a 5-second timeout.
+
+## Guidance Files
+
+Shelley reads guidance files (`AGENTS.md`, `claude.md`, `dear_llm.md`) from the working directory and injects their contents into the system prompt. Use these to provide project-specific instructions.
+
 # Building Shelley
 
 Run `make`. Run `make serve` to start Shelley locally.
