@@ -81,11 +81,7 @@ Shelley can run a script at the start of each new conversation. Create an execut
 
 ```bash
 #!/bin/bash
-echo "=== Git Status ==="
-git status -sb 2>/dev/null || echo "Not a git repo"
-echo ""
-echo "=== Recent commits ==="
-git log --oneline -5 2>/dev/null || true
+[ -d .git ] && git status -sb
 ```
 
 The script runs with the conversation's working directory as its current directory. Output is shown to the user and included in the context sent to the model. The script has a 5-second timeout.
