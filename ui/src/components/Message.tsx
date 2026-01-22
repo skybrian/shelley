@@ -37,6 +37,43 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProp
     return null;
   }
 
+  // Render startup-hook messages
+  if (message.type === "startup-hook") {
+    let llmData: LLMMessage | undefined;
+    if (message.llm_data) {
+      try {
+        llmData = typeof message.llm_data === "string" ? JSON.parse(message.llm_data) : message.llm_data;
+      } catch (err) {
+        console.error("Failed to parse startup-hook llm_data:", err);
+      }
+    }
+    const text = llmData?.Content?.[0]?.Text || "";
+    if (!text) return null;
+
+    return (
+      <div
+        className="message message-startup-hook"
+        data-testid="message-startup-hook"
+        style={{
+          padding: "0.75rem 1rem",
+          margin: "0.5rem 0",
+          backgroundColor: "var(--bg-tertiary, #f5f5f5)",
+          borderLeft: "3px solid var(--border-color, #ccc)",
+          borderRadius: "4px",
+          fontSize: "0.85rem",
+          fontFamily: "monospace",
+          whiteSpace: "pre-wrap",
+          color: "var(--text-secondary)",
+        }}
+      >
+        <div style={{ fontWeight: "bold", marginBottom: "0.5rem", fontFamily: "inherit" }}>
+          Startup
+        </div>
+        {text}
+      </div>
+    );
+  }
+
   // Render gitinfo messages as compact status updates
   if (message.type === "gitinfo") {
     // Parse user_data which contains structured git state info

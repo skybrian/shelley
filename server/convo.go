@@ -136,6 +136,7 @@ func (cm *ConversationManager) Hydrate(ctx context.Context) error {
 	// Generate system prompt if missing:
 	// - For user-initiated conversations: full system prompt
 	// - For subagent conversations (has parent): minimal subagent prompt
+	isNewUserConversation := false
 	if !hasSystemMessage(messages) {
 		var systemMsg *generated.Message
 		var err error
@@ -145,12 +146,22 @@ func (cm *ConversationManager) Hydrate(ctx context.Context) error {
 		} else if conversation.UserInitiated {
 			// User-initiated conversation - use full prompt
 			systemMsg, err = cm.createSystemPrompt(ctx)
+			isNewUserConversation = true
 		}
 		if err != nil {
 			return err
 		}
 		if systemMsg != nil {
 			messages = append(messages, *systemMsg)
+		}
+	}
+
+	// Run startup hook for new user-initiated conversations
+	if isNewUserConversation {
+		if hookMsg, err := cm.runStartupHook(ctx); err != nil {
+			cm.logger.Warn("Failed to run startup hook", "error", err)
+		} else if hookMsg != nil {
+			messages = append(messages, *hookMsg)
 		}
 	}
 
@@ -649,4 +660,47 @@ func (cm *ConversationManager) notifyGitStateChange(ctx context.Context, msg *ge
 		Conversation: conversation,
 	}
 	cm.subpub.Publish(msg.SequenceID, streamData)
+}
+
+// runStartupHook runs the startup hook and creates a startup-hook message if output is produced.
+func (cm *ConversationManager) runStartupHook(ctx context.Context) (*generated.Message, error) {
+	result := RunStartupHook(ctx, cm.cwd)
+	if result == nil {
+		return nil, nil // No hook configured
+	}
+
+	// Build message text
+	var text string
+	if result.Error != nil {
+		if result.Output != "" {
+			text = fmt.Sprintf("Startup hook error: %v\n\nOutput:\n%s", result.Error, result.Output)
+		} else {
+			text = fmt.Sprintf("Startup hook error: %v", result.Error)
+		}
+	} else {
+		text = result.Output
+	}
+
+	if text == "" {
+		return nil, nil // No output
+	}
+
+	// Create message - use user role so it's included in context sent to LLM
+	message := llm.Message{
+		Role:    llm.MessageRoleUser,
+		Content: []llm.Content{{Type: llm.ContentTypeText, Text: text}},
+	}
+
+	created, err := cm.db.CreateMessage(ctx, db.CreateMessageParams{
+		ConversationID: cm.conversationID,
+		Type:           db.MessageTypeStartupHook,
+		LLMData:        message,
+		UsageData:      llm.Usage{},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to store startup hook message: %w", err)
+	}
+
+	cm.logger.Info("Stored startup hook output", "length", len(text))
+	return created, nil
 }

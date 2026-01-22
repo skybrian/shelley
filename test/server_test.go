@@ -28,6 +28,9 @@ import (
 )
 
 func TestServerEndToEnd(t *testing.T) {
+	// Disable startup hook for tests
+	t.Setenv("SHELLEY_DISABLE_STARTUP_HOOK", "1")
+
 	// Create temporary database
 	tempDB := t.TempDir() + "/test.db"
 	database, err := db.New(db.Config{DSN: tempDB})

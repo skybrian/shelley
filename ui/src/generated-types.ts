@@ -61,4 +61,4 @@ export interface ConversationWithStateForTS {
   working: boolean;
 }
 
-export type MessageType = "user" | "agent" | "tool" | "error" | "system" | "gitinfo";
+export type MessageType = "user" | "agent" | "tool" | "error" | "system" | "gitinfo" | "startup-hook";
