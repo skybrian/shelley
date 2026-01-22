@@ -67,7 +67,7 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProp
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: "0.5rem", fontFamily: "inherit" }}>
-          Startup
+          Startup hook output
         </div>
         {text}
       </div>
